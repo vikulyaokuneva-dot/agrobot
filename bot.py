@@ -32,16 +32,37 @@ def clean_html(text):
     return soup.get_text(separator=" ").strip()
 
 def extract_image(entry):
+    # 1. media:content
     if "media_content" in entry:
-        return entry.media_content[0].get("url")
+        media = entry.media_content
+        if media and media[0].get("url"):
+            return media[0]["url"]
 
+    # 2. enclosure
     if "enclosures" in entry and entry.enclosures:
-        return entry.enclosures[0].get("href")
+        enc = entry.enclosures
+        if enc and enc[0].get("href"):
+            return enc[0]["href"]
 
+    # 3. img в description
     soup = BeautifulSoup(entry.get("description", ""), "html.parser")
     img = soup.find("img")
-    if img:
-        return img.get("src")
+    if img and img.get("src"):
+        return img["src"]
+
+    # 4. og:image со страницы статьи (FALLBACK)
+    try:
+        print("🔍 Ищу og:image на странице статьи")
+        response = requests.get(entry.link, timeout=10, headers={
+            "User-Agent": "Mozilla/5.0"
+        })
+        page = BeautifulSoup(response.text, "html.parser")
+        og = page.find("meta", property="og:image")
+        if og and og.get("content"):
+            print(f"🖼 Найдено og:image: {og['content']}")
+            return og["content"]
+    except Exception as e:
+        print(f"❌ Ошибка при получении картинки: {e}")
 
     return None
 
