@@ -23,9 +23,12 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run bot
-        env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-        run: python bot.py
+         env:
+           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+         run: |
+           echo "=== START BOT ==="
+           python -u bot.py
+           echo "=== END BOT ==="
 
       - name: Commit storage
         run: |
