@@ -8,6 +8,14 @@ from telegram import Bot
 
 from rss_sources import RSS_SOURCES
 
+SERIES_RULES = {
+    "🥔 Неделя картофеля": ["картоф", "клубн"],
+    "🌱 Всё о рассаде": ["рассад", "сеян"],
+    "🌿 Болезни растений": ["болезн", "гниль", "пятн"],
+    "🪴 Полив без ошибок": ["полив", "влаг"],
+    "📦 Хранение урожая": ["хранен", "погреб", "подвал"]
+}
+
 print("🔥 BOT.PY LOADED 🔥")
 
 TOKEN = os.getenv("BOT_TOKEN")
@@ -16,6 +24,16 @@ STORAGE_FILE = "storage.json"
 
 EMOJIS = ["🌱", "🪴", "🌼", "🌿", "🍃"]
 HASHTAGS = "#сад #огород #дача"
+
+def detect_series(title, text):
+    combined = f"{title} {text}".lower()
+
+    for series_name, keywords in SERIES_RULES.items():
+        for kw in keywords:
+            if kw in combined:
+                return series_name
+
+    return None
 
 
 def load_storage():
@@ -133,6 +151,7 @@ def get_latest_news():
 
             full_text = extract_full_text(link)
             summary = summarize_text(full_text)
+            series = detect_series(title, summary)
 
             if not summary:
                 continue
@@ -142,6 +161,7 @@ def get_latest_news():
                 "description": summary,
                 "link": link,
                 "image": image,
+                "series": series
             }
 
     return None
@@ -151,13 +171,18 @@ async def post_to_telegram(news):
     bot = Bot(token=TOKEN)
 
     emoji = EMOJIS[hash(news["title"]) % len(EMOJIS)]
+    series_block = ""
+    if news.get("series"):
+        series_block = f"{news['series']}\n\n"
 
     caption = (
+        f"{series_block}"
         f"{emoji} *{news['title']}*\n\n"
         f"{news['description']}\n\n"
         f"✍️ Подготовлено на основе материалов: {news['link']}\n\n"
         f"{HASHTAGS}"
     )
+
 
     await bot.send_photo(
         chat_id=CHAT_ID,
