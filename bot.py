@@ -2,6 +2,7 @@ import json
 import os
 import feedparser
 import requests
+import asyncio
 from bs4 import BeautifulSoup
 from telegram import Bot
 
@@ -92,17 +93,16 @@ def get_latest_news():
             }
     return None
 
-def post_to_telegram(news):
+async def post_to_telegram(news):
     bot = Bot(token=TOKEN)
-    emoji = EMOJIS[hash(news["title"]) % len(EMOJIS)]
 
     caption = (
-        f"{emoji} *{news['title']}*\n\n"
+        f"🌱 *{news['title']}*\n\n"
         f"{news['description']}\n\n"
         f"🔗 [Читать полностью]({news['link']})"
     )
 
-    bot.send_photo(
+    await bot.send_photo(
         chat_id=CHAT_ID,
         photo=news["image"],
         caption=caption,
@@ -128,7 +128,7 @@ def main():
     print(f"📰 Найдена новость: {news['title']}")
     print(f"🖼 Картинка: {news['image']}")
 
-    post_to_telegram(news)
+    asyncio.run(post_to_telegram(news))
 
     storage[news["link"]] = True
     save_storage(storage)
