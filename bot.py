@@ -10,13 +10,13 @@ from rss_sources import RSS_SOURCES
 
 print("🔥 BOT.PY LOADED 🔥")
 
-
-
 TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = "@helpgardener"
 STORAGE_FILE = "storage.json"
 
 EMOJIS = ["🌱", "🪴", "🌼", "🌿", "🍃"]
+HASHTAGS = "#сад #огород #дача"
+
 
 def load_storage():
     if not os.path.exists(STORAGE_FILE):
@@ -24,13 +24,16 @@ def load_storage():
     with open(STORAGE_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
+
 def save_storage(data):
     with open(STORAGE_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
+
 def clean_html(text):
     soup = BeautifulSoup(text, "html.parser")
     return soup.get_text(separator=" ").strip()
+
 
 def extract_image(entry):
     # 1. media:content
@@ -51,12 +54,14 @@ def extract_image(entry):
     if img and img.get("src"):
         return img["src"]
 
-    # 4. og:image со страницы статьи (FALLBACK)
+    # 4. og:image со страницы статьи (fallback)
     try:
         print("🔍 Ищу og:image на странице статьи")
-        response = requests.get(entry.link, timeout=10, headers={
-            "User-Agent": "Mozilla/5.0"
-        })
+        response = requests.get(
+            entry.link,
+            timeout=10,
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
         page = BeautifulSoup(response.text, "html.parser")
         og = page.find("meta", property="og:image")
         if og and og.get("content"):
@@ -66,6 +71,48 @@ def extract_image(entry):
         print(f"❌ Ошибка при получении картинки: {e}")
 
     return None
+
+
+def extract_full_text(url):
+    try:
+        response = requests.get(
+            url,
+            timeout=10,
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        # удаляем мусор
+        for tag in soup(["script", "style", "noscript", "header", "footer", "nav", "aside"]):
+            tag.decompose()
+
+        paragraphs = soup.find_all("p")
+        text = "\n".join(
+            p.get_text(strip=True)
+            for p in paragraphs
+            if len(p.get_text(strip=True)) > 40
+        )
+
+        return text[:4000]
+    except Exception as e:
+        print(f"❌ Ошибка извлечения текста статьи: {e}")
+        return ""
+
+
+def summarize_text(text):
+    sentences = text.split(".")
+    bullets = []
+
+    for s in sentences:
+        s = s.strip()
+        if 50 < len(s) < 200:
+            bullets.append(f"• {s}")
+
+        if len(bullets) >= 5:
+            break
+
+    return "\n".join(bullets)
+
 
 def get_latest_news():
     storage = load_storage()
@@ -83,27 +130,33 @@ def get_latest_news():
                 continue
 
             title = clean_html(entry.get("title", ""))
-            description = clean_html(entry.get("description", ""))[:700]
+
+            full_text = extract_full_text(link)
+            summary = summarize_text(full_text)
+
+            if not summary:
+                continue
 
             return {
                 "title": title,
-                "description": description,
+                "description": summary,
                 "link": link,
-                "image": image
+                "image": image,
             }
+
     return None
+
 
 async def post_to_telegram(news):
     bot = Bot(token=TOKEN)
 
     emoji = EMOJIS[hash(news["title"]) % len(EMOJIS)]
-    hashtags = "#сад #огород #дача"
 
     caption = (
         f"{emoji} *{news['title']}*\n\n"
         f"{news['description']}\n\n"
-        f"🔗 [Читать полностью]({news['link']})\n\n"
-        f"{hashtags}"
+        f"✍️ Подготовлено на основе материалов: {news['link']}\n\n"
+        f"{HASHTAGS}"
     )
 
     await bot.send_photo(
@@ -112,6 +165,7 @@ async def post_to_telegram(news):
         caption=caption,
         parse_mode="Markdown"
     )
+
 
 def main():
     print("🚀 Бот запущен")
