@@ -109,3 +109,7 @@ def main():
     save_storage(storage)
 
     print("✅ Новость опубликована")
+
+
+if __name__ == "__main__":
+    main()
