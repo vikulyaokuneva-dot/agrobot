@@ -1,10 +1,14 @@
 import json
 import os
 import feedparser
+import requests
 from bs4 import BeautifulSoup
 from telegram import Bot
 
+from rss_sources import RSS_SOURCES
+
 print("🔥 BOT.PY LOADED 🔥")
+
 
 
 TOKEN = os.getenv("BOT_TOKEN")
