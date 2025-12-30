@@ -83,16 +83,27 @@ def post_to_telegram(news):
     )
 
 def main():
+    print("🚀 Бот запущен")
+
+    if not TOKEN:
+        print("❌ BOT_TOKEN не найден")
+        return
+
     storage = load_storage()
+    print(f"📦 В storage записей: {len(storage)}")
+
     news = get_latest_news()
 
     if not news:
-        print("Нет подходящих новостей")
+        print("⚠️ Нет подходящих новостей для публикации")
         return
 
+    print(f"📰 Найдена новость: {news['title']}")
+    print(f"🖼 Картинка: {news['image']}")
+
     post_to_telegram(news)
+
     storage[news["link"]] = True
     save_storage(storage)
 
-if __name__ == "__main__":
-    main()
+    print("✅ Новость опубликована")
