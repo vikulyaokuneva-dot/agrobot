@@ -8,14 +8,6 @@ from telegram import Bot
 
 from rss_sources import RSS_SOURCES
 
-SERIES_RULES = {
-    "🥔 Неделя картофеля": ["картоф", "клубн"],
-    "🌱 Всё о рассаде": ["рассад", "сеян"],
-    "🌿 Болезни растений": ["болезн", "гниль", "пятн"],
-    "🪴 Полив без ошибок": ["полив", "влаг"],
-    "📦 Хранение урожая": ["хранен", "погреб", "подвал"]
-}
-
 print("🔥 BOT.PY LOADED 🔥")
 
 TOKEN = os.getenv("BOT_TOKEN")
@@ -25,33 +17,29 @@ STORAGE_FILE = "storage.json"
 EMOJIS = ["🌱", "🪴", "🌼", "🌿", "🍃"]
 HASHTAGS = "#сад #огород #дача"
 
-def detect_series(title, text):
-    combined = f"{title} {text}".lower()
+SERIES_RULES = {
+    "🥔 Неделя картофеля": ["картоф", "клубн"],
+    "🌱 Всё о рассаде": ["рассад", "сеян"],
+    "🌿 Болезни растений": ["болезн", "гниль", "пятн"],
+    "🪴 Полив без ошибок": ["полив", "влаг"],
+    "📦 Хранение урожая": ["хранен", "погреб", "подвал"],
+}
 
-    for series_name, keywords in SERIES_RULES.items():
-        for kw in keywords:
-            if kw in combined:
-                return series_name
 
-    return None
-
+# ---------- STORAGE ----------
 
 def load_storage():
     if not os.path.exists(STORAGE_FILE):
-        return {
-            "posts_count": 0,
-            "published_links": {}
-        }
+        return {"posts_count": 0, "published_links": {}}
 
     with open(STORAGE_FILE, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    # Миграция старого формата
+    # миграция старого формата
     if "published_links" not in data:
-        links = data
         return {
-            "posts_count": len(links),
-            "published_links": links
+            "posts_count": len(data),
+            "published_links": data
         }
 
     return data
@@ -62,33 +50,49 @@ def save_storage(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
+def increment_posts_count(storage):
+    storage["posts_count"] = storage.get("posts_count", 0) + 1
+
+
+def should_make_short_post(posts_count):
+    return posts_count != 0 and posts_count % 10 == 0
+
+
+# ---------- SERIES ----------
+
+def detect_series(title, text):
+    combined = f"{title} {text}".lower()
+    for name, keywords in SERIES_RULES.items():
+        for kw in keywords:
+            if kw in combined:
+                return name
+    return None
+
+
+# ---------- CONTENT ----------
+
 def clean_html(text):
     soup = BeautifulSoup(text, "html.parser")
     return soup.get_text(separator=" ").strip()
 
 
 def extract_image(entry):
-    # 1. media:content
     if "media_content" in entry:
         media = entry.media_content
         if media and media[0].get("url"):
             return media[0]["url"]
 
-    # 2. enclosure
     if "enclosures" in entry and entry.enclosures:
         enc = entry.enclosures
         if enc and enc[0].get("href"):
             return enc[0]["href"]
 
-    # 3. img в description
     soup = BeautifulSoup(entry.get("description", ""), "html.parser")
     img = soup.find("img")
     if img and img.get("src"):
         return img["src"]
 
-    # 4. og:image со страницы статьи (fallback)
     try:
-        print("🔍 Ищу og:image на странице статьи")
         response = requests.get(
             entry.link,
             timeout=10,
@@ -97,10 +101,9 @@ def extract_image(entry):
         page = BeautifulSoup(response.text, "html.parser")
         og = page.find("meta", property="og:image")
         if og and og.get("content"):
-            print(f"🖼 Найдено og:image: {og['content']}")
             return og["content"]
-    except Exception as e:
-        print(f"❌ Ошибка при получении картинки: {e}")
+    except Exception:
+        pass
 
     return None
 
@@ -114,7 +117,6 @@ def extract_full_text(url):
         )
         soup = BeautifulSoup(response.text, "html.parser")
 
-        # удаляем мусор
         for tag in soup(["script", "style", "noscript", "header", "footer", "nav", "aside"]):
             tag.decompose()
 
@@ -126,8 +128,7 @@ def extract_full_text(url):
         )
 
         return text[:4000]
-    except Exception as e:
-        print(f"❌ Ошибка извлечения текста статьи: {e}")
+    except Exception:
         return ""
 
 
@@ -139,22 +140,19 @@ def summarize_text(text):
         s = s.strip()
         if 50 < len(s) < 200:
             bullets.append(f"• {s}")
-
         if len(bullets) >= 5:
             break
 
     return "\n".join(bullets)
 
 
-def get_latest_news():
-    storage = load_storage()
-
+def get_latest_news(storage):
     for source in RSS_SOURCES:
         feed = feedparser.parse(source)
 
         for entry in feed.entries:
             link = entry.get("link")
-            if not link or link in storage:
+            if not link or link in storage["published_links"]:
                 continue
 
             image = extract_image(entry)
@@ -165,10 +163,10 @@ def get_latest_news():
 
             full_text = extract_full_text(link)
             summary = summarize_text(full_text)
-            series = detect_series(title, summary)
-
             if not summary:
                 continue
+
+            series = detect_series(title, summary)
 
             return {
                 "title": title,
@@ -181,13 +179,29 @@ def get_latest_news():
     return None
 
 
-async def post_to_telegram(news):
-    bot = Bot(token=TOKEN)
+# ---------- POSTING ----------
 
+def generate_short_post():
+    tips = [
+        "Не поливайте растения холодной водой — это стресс для корней.",
+        "Лучше недолить растение, чем перелить.",
+        "Рыхление почвы после полива улучшает доступ кислорода.",
+        "Не сажайте рассаду в холодную землю — рост замедлится.",
+        "Пожелтение листьев часто говорит о переувлажнении."
+    ]
+    return "🌱 *Совет дня*\n\n" + tips[hash(os.urandom(4)) % len(tips)]
+
+
+async def post_short(text):
+    bot = Bot(token=TOKEN)
+    await bot.send_message(chat_id=CHAT_ID, text=text, parse_mode="Markdown")
+
+
+async def post_full(news):
+    bot = Bot(token=TOKEN)
     emoji = EMOJIS[hash(news["title"]) % len(EMOJIS)]
-    series_block = ""
-    if news.get("series"):
-        series_block = f"{news['series']}\n\n"
+
+    series_block = f"{news['series']}\n\n" if news.get("series") else ""
 
     caption = (
         f"{series_block}"
@@ -197,7 +211,6 @@ async def post_to_telegram(news):
         f"{HASHTAGS}"
     )
 
-
     await bot.send_photo(
         chat_id=CHAT_ID,
         photo=news["image"],
@@ -205,6 +218,8 @@ async def post_to_telegram(news):
         parse_mode="Markdown"
     )
 
+
+# ---------- MAIN ----------
 
 def main():
     print("🚀 Бот запущен")
@@ -214,23 +229,26 @@ def main():
         return
 
     storage = load_storage()
-    print(f"📦 В storage записей: {len(storage)}")
+    print(f"📦 Постов опубликовано: {storage['posts_count']}")
 
-    news = get_latest_news()
-
-    if not news:
-        print("⚠️ Нет подходящих новостей для публикации")
+    if should_make_short_post(storage["posts_count"]):
+        print("📝 Короткий пост")
+        asyncio.run(post_short(generate_short_post()))
+        increment_posts_count(storage)
+        save_storage(storage)
         return
 
-    print(f"📰 Найдена новость: {news['title']}")
-    print(f"🖼 Картинка: {news['image']}")
+    news = get_latest_news(storage)
+    if not news:
+        print("⚠️ Нет подходящих новостей")
+        return
 
-    asyncio.run(post_to_telegram(news))
-
-    storage[news["link"]] = True
+    asyncio.run(post_full(news))
+    storage["published_links"][news["link"]] = True
+    increment_posts_count(storage)
     save_storage(storage)
 
-    print("✅ Новость опубликована")
+    print("✅ Пост опубликован")
 
 
 if __name__ == "__main__":
