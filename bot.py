@@ -25,6 +25,25 @@ SERIES_RULES = {
     "📦 Хранение урожая": ["хранен", "погреб", "подвал"],
 }
 
+SEASON_RULES = {
+    "🌱 Весенние работы": {
+        "months": [3, 4, 5],
+        "keywords": ["рассад", "посад", "гряд", "почв"]
+    },
+    "☀️ Летний уход": {
+        "months": [6, 7, 8],
+        "keywords": ["полив", "вред", "болезн", "подкорм"]
+    },
+    "🍂 Осенний урожай": {
+        "months": [9, 10, 11],
+        "keywords": ["урожа", "хранен", "уборк", "обрез"]
+    },
+    "❄️ Зимние советы": {
+        "months": [12, 1, 2],
+        "keywords": ["комнат", "зим", "хранен", "план"]
+    }
+}
+
 
 # ---------- STORAGE ----------
 
@@ -66,6 +85,22 @@ def detect_series(title, text):
         for kw in keywords:
             if kw in combined:
                 return name
+    return None
+
+from datetime import datetime
+
+def detect_season_series(title, text):
+    month = datetime.now().month
+    combined = f"{title} {text}".lower()
+
+    for season, rule in SEASON_RULES.items():
+        if month not in rule["months"]:
+            continue
+
+        for kw in rule["keywords"]:
+            if kw in combined:
+                return season
+
     return None
 
 
@@ -166,7 +201,8 @@ def get_latest_news(storage):
             if not summary:
                 continue
 
-            series = detect_series(title, summary)
+            series = detect_series(title, summary) or detect_season_series(title, summary)
+
 
             return {
                 "title": title,
