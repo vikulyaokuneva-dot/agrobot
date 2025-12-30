@@ -1,10 +1,6 @@
 {
-  "posts_count": 27,
-  "published_links": {...},
-  "sources_stats": {
-    "https://rsute.ru/sad-ogorod/feed": {
-      "checked": 12,
-      "published": 9
-    }
-  }
+  "posts_count": 12,
+  "published_links": {},
+  "sources_stats": {}
 }
+
