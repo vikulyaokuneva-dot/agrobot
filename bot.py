@@ -35,6 +35,16 @@ SERIES_RULES = {
     "🪴 Полив без ошибок": ["полив", "влаг"],
     "📦 Хранение урожая": ["хранен", "погреб", "подвал"],
 }
+TAG_RULES = {
+    "#семена": ["семен", "семян"],
+    "#посев": ["посев", "сеять", "сеян"],
+    "#рассада": ["рассад"],
+    "#полив": ["полив", "влаг"],
+    "#удобрения": ["удобрен", "подкорм"],
+    "#болезни": ["болезн", "гниль", "пятн"],
+    "#хранение": ["хранен", "погреб", "подвал"],
+    "#обрезка": ["обрез", "формиров"],
+}
 
 # ---------- STORAGE ----------
 
@@ -64,6 +74,18 @@ def load_storage():
 def save_storage(data):
     with open(STORAGE_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+def detect_tags(title, text):
+    combined = f"{title} {text}".lower()
+    tags = []
+
+    for tag, keywords in TAG_RULES.items():
+        for kw in keywords:
+            if kw in combined:
+                tags.append(tag)
+                break
+
+    return tags[:2]  # не больше 2 тематических
 
 
 def increment_posts_count(storage):
@@ -240,14 +262,18 @@ async def post_full(news):
     bot = Bot(token=TOKEN)
     emoji = EMOJIS[hash(news["title"]) % len(EMOJIS)]
     series_block = f"{news['series']}\n\n" if news.get("series") else ""
-
+    tags = detect_tags(news["title"], news["description"])
+    tags_text = " ".join(tags)
+    
     caption = (
         f"{series_block}"
         f"{emoji} *{news['title']}*\n\n"
         f"{news['description']}\n\n"
         f"✍️ Подготовлено на основе материалов: {news['link']}\n\n"
-        f"{HASHTAGS}"
+        f"{tags_text}\n"
+        f"#сад #огород #дача"
     )
+
 
     await bot.send_photo(
         chat_id=CHAT_ID,
