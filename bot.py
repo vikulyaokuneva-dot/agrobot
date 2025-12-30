@@ -96,10 +96,13 @@ def get_latest_news():
 async def post_to_telegram(news):
     bot = Bot(token=TOKEN)
 
+    HASHTAGS = "#сад #огород #дача"
+
     caption = (
-        f"🌱 *{news['title']}*\n\n"
+        f"{emoji} *{news['title']}*\n\n"
         f"{news['description']}\n\n"
-        f"🔗 [Читать полностью]({news['link']})"
+        f"🔗 [Читать полностью]({news['link']})\n\n"
+        f"{HASHTAGS}"
     )
 
     await bot.send_photo(
