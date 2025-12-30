@@ -38,9 +38,23 @@ def detect_series(title, text):
 
 def load_storage():
     if not os.path.exists(STORAGE_FILE):
-        return {}
+        return {
+            "posts_count": 0,
+            "published_links": {}
+        }
+
     with open(STORAGE_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+
+    # Миграция старого формата
+    if "published_links" not in data:
+        links = data
+        return {
+            "posts_count": len(links),
+            "published_links": links
+        }
+
+    return data
 
 
 def save_storage(data):
