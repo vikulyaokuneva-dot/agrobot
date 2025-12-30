@@ -3,6 +3,7 @@ import os
 import feedparser
 import requests
 import asyncio
+from datetime import datetime
 from bs4 import BeautifulSoup
 from telegram import Bot
 
@@ -17,6 +18,16 @@ STORAGE_FILE = "storage.json"
 EMOJIS = ["🌱", "🪴", "🌼", "🌿", "🍃"]
 HASHTAGS = "#сад #огород #дача"
 
+# ---------- ВЕСА ИСТОЧНИКОВ ----------
+SOURCE_WEIGHTS = {
+    "https://rsute.ru/sad-ogorod/feed": 5,
+    "https://www.ogorod.ru/rss": 4,
+    "https://7dach.ru/rss": 3,
+    "https://www.greeninfo.ru/rss.html": 2,
+    "https://www.supersadovnik.ru/rss": 2,
+}
+
+# ---------- МИНИ-СЕРИИ ----------
 SERIES_RULES = {
     "🥔 Неделя картофеля": ["картоф", "клубн"],
     "🌱 Всё о рассаде": ["рассад", "сеян"],
@@ -25,31 +36,15 @@ SERIES_RULES = {
     "📦 Хранение урожая": ["хранен", "погреб", "подвал"],
 }
 
-SEASON_RULES = {
-    "🌱 Весенние работы": {
-        "months": [3, 4, 5],
-        "keywords": ["рассад", "посад", "гряд", "почв"]
-    },
-    "☀️ Летний уход": {
-        "months": [6, 7, 8],
-        "keywords": ["полив", "вред", "болезн", "подкорм"]
-    },
-    "🍂 Осенний урожай": {
-        "months": [9, 10, 11],
-        "keywords": ["урожа", "хранен", "уборк", "обрез"]
-    },
-    "❄️ Зимние советы": {
-        "months": [12, 1, 2],
-        "keywords": ["комнат", "зим", "хранен", "план"]
-    }
-}
-
-
 # ---------- STORAGE ----------
 
 def load_storage():
     if not os.path.exists(STORAGE_FILE):
-        return {"posts_count": 0, "published_links": {}}
+        return {
+            "posts_count": 0,
+            "published_links": {},
+            "sources_stats": {}
+        }
 
     with open(STORAGE_FILE, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -58,9 +53,11 @@ def load_storage():
     if "published_links" not in data:
         return {
             "posts_count": len(data),
-            "published_links": data
+            "published_links": data,
+            "sources_stats": {}
         }
 
+    data.setdefault("sources_stats", {})
     return data
 
 
@@ -77,7 +74,23 @@ def should_make_short_post(posts_count):
     return posts_count != 0 and posts_count % 10 == 0
 
 
-# ---------- SERIES ----------
+# ---------- СТАТИСТИКА ИСТОЧНИКОВ ----------
+
+def update_source_stats(storage, source, published=False):
+    stats = storage.setdefault("sources_stats", {})
+    source_stat = stats.setdefault(source, {"checked": 0, "published": 0})
+
+    source_stat["checked"] += 1
+    if published:
+        source_stat["published"] += 1
+
+
+# ---------- УТИЛИТЫ ----------
+
+def clean_html(text):
+    soup = BeautifulSoup(text, "html.parser")
+    return soup.get_text(separator=" ").strip()
+
 
 def detect_series(title, text):
     combined = f"{title} {text}".lower()
@@ -87,29 +100,8 @@ def detect_series(title, text):
                 return name
     return None
 
-from datetime import datetime
 
-def detect_season_series(title, text):
-    month = datetime.now().month
-    combined = f"{title} {text}".lower()
-
-    for season, rule in SEASON_RULES.items():
-        if month not in rule["months"]:
-            continue
-
-        for kw in rule["keywords"]:
-            if kw in combined:
-                return season
-
-    return None
-
-
-# ---------- CONTENT ----------
-
-def clean_html(text):
-    soup = BeautifulSoup(text, "html.parser")
-    return soup.get_text(separator=" ").strip()
-
+# ---------- ИЗВЛЕЧЕНИЕ КОНТЕНТА ----------
 
 def extract_image(entry):
     if "media_content" in entry:
@@ -181,14 +173,24 @@ def summarize_text(text):
     return "\n".join(bullets)
 
 
+# ---------- ПОЛУЧЕНИЕ НОВОСТИ ----------
+
 def get_latest_news(storage):
-    for source in RSS_SOURCES:
+    sorted_sources = sorted(
+        RSS_SOURCES,
+        key=lambda s: SOURCE_WEIGHTS.get(s, 1),
+        reverse=True
+    )
+
+    for source in sorted_sources:
         feed = feedparser.parse(source)
 
         for entry in feed.entries:
             link = entry.get("link")
             if not link or link in storage["published_links"]:
                 continue
+
+            update_source_stats(storage, source, published=False)
 
             image = extract_image(entry)
             if not image:
@@ -201,8 +203,9 @@ def get_latest_news(storage):
             if not summary:
                 continue
 
-            series = detect_series(title, summary) or detect_season_series(title, summary)
+            series = detect_series(title, summary)
 
+            update_source_stats(storage, source, published=True)
 
             return {
                 "title": title,
@@ -215,15 +218,15 @@ def get_latest_news(storage):
     return None
 
 
-# ---------- POSTING ----------
+# ---------- ПУБЛИКАЦИЯ ----------
 
 def generate_short_post():
     tips = [
-        "Не поливайте растения холодной водой — это стресс для корней.",
         "Лучше недолить растение, чем перелить.",
+        "Не поливайте растения холодной водой — это стресс для корней.",
         "Рыхление почвы после полива улучшает доступ кислорода.",
-        "Не сажайте рассаду в холодную землю — рост замедлится.",
-        "Пожелтение листьев часто говорит о переувлажнении."
+        "Пожелтение листьев часто говорит о переувлажнении.",
+        "Не сажайте рассаду в холодную почву — рост замедляется."
     ]
     return "🌱 *Совет дня*\n\n" + tips[hash(os.urandom(4)) % len(tips)]
 
@@ -236,7 +239,6 @@ async def post_short(text):
 async def post_full(news):
     bot = Bot(token=TOKEN)
     emoji = EMOJIS[hash(news["title"]) % len(EMOJIS)]
-
     series_block = f"{news['series']}\n\n" if news.get("series") else ""
 
     caption = (
@@ -277,6 +279,7 @@ def main():
     news = get_latest_news(storage)
     if not news:
         print("⚠️ Нет подходящих новостей")
+        save_storage(storage)
         return
 
     asyncio.run(post_full(news))
