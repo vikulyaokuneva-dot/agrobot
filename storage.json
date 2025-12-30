@@ -1,6 +1,12 @@
 {
-  "posts_count": 12,
-  "published_links": {},
-  "sources_stats": {}
+  "posts_count": 13,
+  "published_links": {
+    "https://rsute.ru/1125215-gde-i-kak-hranit-kartoshku-chtoby-ona-ne-prorastala-i-ne-smorshhivalas-6-mesyaczev.html": true
+  },
+  "sources_stats": {
+    "https://rsute.ru/sad-ogorod/feed": {
+      "checked": 2,
+      "published": 1
+    }
+  }
 }
-
