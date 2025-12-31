@@ -1,14 +1,15 @@
 {
-  "posts_count": 15,
+  "posts_count": 16,
   "published_links": {
     "https://rsute.ru/1125215-gde-i-kak-hranit-kartoshku-chtoby-ona-ne-prorastala-i-ne-smorshhivalas-6-mesyaczev.html": true,
     "https://rsute.ru/1125073-podbiraem-semena-gramotno-na-chto-obratit-vnimanie-ogorodnikam.html": true,
-    "https://rsute.ru/1125047-chtoby-vesnoj-czveli-pyshno-sovety-kak-sohranit-geran-zimoj.html": true
+    "https://rsute.ru/1125047-chtoby-vesnoj-czveli-pyshno-sovety-kak-sohranit-geran-zimoj.html": true,
+    "https://rsute.ru/1125335-kogda-v-yanvare-seyat-rassadu-i-podgotavlivatsya-k-novomu-ogorodnomu-sezonu-tochnyj-posevnoj-kalendar.html": true
   },
   "sources_stats": {
     "https://rsute.ru/sad-ogorod/feed": {
-      "checked": 6,
-      "published": 3
+      "checked": 8,
+      "published": 4
     }
   }
 }
