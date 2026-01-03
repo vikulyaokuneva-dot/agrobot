@@ -1,5 +1,5 @@
 {
-  "posts_count": 26,
+  "posts_count": 27,
   "published_links": {
     "https://rsute.ru/1125215-gde-i-kak-hranit-kartoshku-chtoby-ona-ne-prorastala-i-ne-smorshhivalas-6-mesyaczev.html": true,
     "https://rsute.ru/1125073-podbiraem-semena-gramotno-na-chto-obratit-vnimanie-ogorodnikam.html": true,
@@ -13,7 +13,8 @@
     "https://rsute.ru/1124035-kogda-sazhat-luk-pod-zimu-plyusy-i-minusy-takogo-sposoba.html": true,
     "https://www.supersadovnik.ru/plant/shuazija-trojchataja-meksikanskij-apelsin-1754": true,
     "https://www.supersadovnik.ru/plant/leukutoje-1753": true,
-    "https://rsute.ru/1125455-blagopriyatnye-dni-kogda-sazhat-i-peresazhivat-czvety-po-lunnomu-kalendaryu-v-2026-godu.html": true
+    "https://rsute.ru/1125455-blagopriyatnye-dni-kogda-sazhat-i-peresazhivat-czvety-po-lunnomu-kalendaryu-v-2026-godu.html": true,
+    "https://www.supersadovnik.ru/plant/trjasunka-1752": true
   },
   "sources_stats": {
     "https://rsute.ru/sad-ogorod/feed": {
@@ -21,12 +22,12 @@
       "published": 11
     },
     "https://7dach.ru/rss": {
-      "checked": 200,
+      "checked": 300,
       "published": 0
     },
     "https://www.supersadovnik.ru/rss": {
-      "checked": 4,
-      "published": 2
+      "checked": 6,
+      "published": 3
     }
   }
 }
