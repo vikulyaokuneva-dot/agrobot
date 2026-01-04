@@ -1,5 +1,5 @@
 {
-  "posts_count": 28,
+  "posts_count": 29,
   "published_links": {
     "https://rsute.ru/1125215-gde-i-kak-hranit-kartoshku-chtoby-ona-ne-prorastala-i-ne-smorshhivalas-6-mesyaczev.html": true,
     "https://rsute.ru/1125073-podbiraem-semena-gramotno-na-chto-obratit-vnimanie-ogorodnikam.html": true,
@@ -15,7 +15,8 @@
     "https://www.supersadovnik.ru/plant/leukutoje-1753": true,
     "https://rsute.ru/1125455-blagopriyatnye-dni-kogda-sazhat-i-peresazhivat-czvety-po-lunnomu-kalendaryu-v-2026-godu.html": true,
     "https://www.supersadovnik.ru/plant/trjasunka-1752": true,
-    "https://www.supersadovnik.ru/plant/rafiolepis-1751": true
+    "https://www.supersadovnik.ru/plant/rafiolepis-1751": true,
+    "https://www.supersadovnik.ru/plant/cissus-1750": true
   },
   "sources_stats": {
     "https://rsute.ru/sad-ogorod/feed": {
@@ -23,12 +24,12 @@
       "published": 11
     },
     "https://7dach.ru/rss": {
-      "checked": 400,
+      "checked": 500,
       "published": 0
     },
     "https://www.supersadovnik.ru/rss": {
-      "checked": 8,
-      "published": 4
+      "checked": 10,
+      "published": 5
     }
   }
 }
