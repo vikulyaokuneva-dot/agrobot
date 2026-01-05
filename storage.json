@@ -1,5 +1,5 @@
 {
-  "posts_count": 31,
+  "posts_count": 32,
   "published_links": {
     "https://rsute.ru/1125215-gde-i-kak-hranit-kartoshku-chtoby-ona-ne-prorastala-i-ne-smorshhivalas-6-mesyaczev.html": true,
     "https://rsute.ru/1125073-podbiraem-semena-gramotno-na-chto-obratit-vnimanie-ogorodnikam.html": true,
@@ -17,7 +17,8 @@
     "https://www.supersadovnik.ru/plant/trjasunka-1752": true,
     "https://www.supersadovnik.ru/plant/rafiolepis-1751": true,
     "https://www.supersadovnik.ru/plant/cissus-1750": true,
-    "https://www.supersadovnik.ru/plant/omezhnik-1749": true
+    "https://www.supersadovnik.ru/plant/omezhnik-1749": true,
+    "https://www.supersadovnik.ru/plant/narciss-bumagovidnyj-ili-bumazhnyj-1748": true
   },
   "sources_stats": {
     "https://rsute.ru/sad-ogorod/feed": {
@@ -25,12 +26,12 @@
       "published": 11
     },
     "https://7dach.ru/rss": {
-      "checked": 600,
+      "checked": 700,
       "published": 0
     },
     "https://www.supersadovnik.ru/rss": {
-      "checked": 12,
-      "published": 6
+      "checked": 14,
+      "published": 7
     }
   }
 }
