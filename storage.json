@@ -1,5 +1,5 @@
 {
-  "posts_count": 35,
+  "posts_count": 36,
   "published_links": {
     "https://rsute.ru/1125215-gde-i-kak-hranit-kartoshku-chtoby-ona-ne-prorastala-i-ne-smorshhivalas-6-mesyaczev.html": true,
     "https://rsute.ru/1125073-podbiraem-semena-gramotno-na-chto-obratit-vnimanie-ogorodnikam.html": true,
@@ -21,7 +21,8 @@
     "https://www.supersadovnik.ru/plant/narciss-bumagovidnyj-ili-bumazhnyj-1748": true,
     "https://www.supersadovnik.ru/plant/fatsija-japonskaja-1747": true,
     "https://www.supersadovnik.ru/text/cvetochnyj-goroskop-na-2026-god-dlja-kazhdogo-znaka-zodiaka-1014537": true,
-    "https://www.supersadovnik.ru/text/rozhdestvenskie-zabavy-tradicionnye-i-sovremennye-1013516": true
+    "https://www.supersadovnik.ru/text/rozhdestvenskie-zabavy-tradicionnye-i-sovremennye-1013516": true,
+    "https://www.supersadovnik.ru/text/novogodnie-igry-dlya-vzroslyh-chem-zanyatsya-v-prazdnik-1003236": true
   },
   "sources_stats": {
     "https://rsute.ru/sad-ogorod/feed": {
@@ -29,12 +30,12 @@
       "published": 11
     },
     "https://7dach.ru/rss": {
-      "checked": 1000,
+      "checked": 1100,
       "published": 0
     },
     "https://www.supersadovnik.ru/rss": {
-      "checked": 20,
-      "published": 10
+      "checked": 22,
+      "published": 11
     }
   }
 }
