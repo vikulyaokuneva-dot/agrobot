@@ -1,5 +1,5 @@
 {
-  "posts_count": 39,
+  "posts_count": 40,
   "published_links": {
     "https://rsute.ru/1125215-gde-i-kak-hranit-kartoshku-chtoby-ona-ne-prorastala-i-ne-smorshhivalas-6-mesyaczev.html": true,
     "https://rsute.ru/1125073-podbiraem-semena-gramotno-na-chto-obratit-vnimanie-ogorodnikam.html": true,
@@ -25,7 +25,8 @@
     "https://www.supersadovnik.ru/text/novogodnie-igry-dlya-vzroslyh-chem-zanyatsya-v-prazdnik-1003236": true,
     "https://rsute.ru/1125563-po-kakoj-prichine-gibnet-denezhnoe-derevo-sadovody-raskryli-oshibki-uhoda-za-rasteniem.html": true,
     "https://rsute.ru/1125550-svezhaya-zelen-kruglyj-god-kak-vyrastit-zelenyj-luk-na-podokonnike-zimoj.html": true,
-    "https://www.supersadovnik.ru/text/chem-zanyatsya-v-novyj-god-igry-dlya-detej-1003249": true
+    "https://www.supersadovnik.ru/text/chem-zanyatsya-v-novyj-god-igry-dlya-detej-1003249": true,
+    "https://www.supersadovnik.ru/text/gde-provesti-novogodnie-kanikuly-s-detmi-luchshie-fermy-i-kafe-s-milymi-zhivotnymi-1014536": true
   },
   "sources_stats": {
     "https://rsute.ru/sad-ogorod/feed": {
@@ -33,12 +34,12 @@
       "published": 13
     },
     "https://7dach.ru/rss": {
-      "checked": 1200,
+      "checked": 1300,
       "published": 0
     },
     "https://www.supersadovnik.ru/rss": {
-      "checked": 24,
-      "published": 12
+      "checked": 26,
+      "published": 13
     }
   }
 }
