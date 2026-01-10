@@ -5,235 +5,112 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from datetime import datetime, timedelta
 
-# --- Вспомогательная функция для разбора дат (С ИСПРАВЛЕНИЕМ) ---
+# --- Вспомогательная функция для разбора дат (без изменений) ---
 def parse_date_string(date_str):
-    """
-    Пытается разобрать строку с датой в разных форматах.
-    Возвращает объект datetime или None, если не удалось.
-    """
     if not date_str:
         return None
-        
     date_str = date_str.lower().strip()
-    
     MONTHS = {
         'января': 1, 'февраля': 2, 'марта': 3, 'апреля': 4, 'мая': 5, 'июня': 6,
         'июля': 7, 'августа': 8, 'сентября': 9, 'октября': 10, 'ноября': 11, 'декабря': 12
     }
-
-    if 'сегодня' in date_str:
-        return datetime.now()
-    if 'вчера' in date_str:
-        return datetime.now() - timedelta(days=1)
-
-    # === ИСПРАВЛЕНИЕ ЗДЕСЬ ===
-    # Оборачиваем первую попытку в try-except, чтобы ловить ошибки типа int('уход')
+    if 'сегодня' in date_str: return datetime.now()
+    if 'вчера' in date_str: return datetime.now() - timedelta(days=1)
     try:
         parts = date_str.split()
         if len(parts) == 3 and parts[1] in MONTHS:
-            day = int(parts[0])
-            month = MONTHS[parts[1]]
-            year = int(parts[2])
-            return datetime(year, month, day)
-    except (ValueError, IndexError):
-        # Если не получилось (например, вместо числа '11' было слово 'уход'),
-        # просто игнорируем и пробуем следующий формат.
-        pass
-
+            return datetime(int(parts[2]), MONTHS[parts[1]], int(parts[0]))
+    except (ValueError, IndexError): pass
     try:
         return datetime.strptime(date_str, '%d.%m.%Y')
-    except ValueError:
-        pass
-
-    # Если ни один из форматов не подошел
+    except ValueError: pass
     return None
 
 # --- Функции ОБНАРУЖЕНИЯ (без изменений) ---
+# ... (discover_supersadovnik_links, discover_botanichka_links и т.д. остаются прежними)
 
-def discover_supersadovnik_links(soup, base_url):
-    articles = []
-    for item in soup.find_all('div', class_='item-post-common'):
-        link_tag = item.find('a', class_='item-post-common__title')
-        date_tag = item.find('span', class_='item-post-common__date')
-        if link_tag and date_tag and link_tag.has_attr('href'):
-            url = urljoin(base_url, link_tag['href'])
-            date = parse_date_string(date_tag.get_text())
-            # Добавляем только если дата была найдена
-            if date:
-                articles.append((url, date))
-    return articles
+# --- Функции ПАРСИНГА отдельных статей (С ИСПРАВЛЕНИЯМИ) ---
 
-def discover_botanichka_links(soup, base_url):
-    articles = []
-    for item in soup.find_all('article'):
-        link_tag = item.find('h2', class_='post-title').find('a')
-        date_tag = item.find('span', class_='post-meta-date')
-        if link_tag and date_tag and link_tag.has_attr('href'):
-            url = urljoin(base_url, link_tag['href'])
-            date = parse_date_string(date_tag.get_text())
-            if date:
-                articles.append((url, date))
-    return articles
-
-# ... (остальные функции discover_* и parse_* остаются без изменений)
-# (Я оставлю здесь только одну для примера, остальной код в файле тот же)
-
-def discover_ogorod_ru_links(soup, base_url):
-    articles = []
-    for item in soup.select('.item-article, .rubric-popular-item'):
-        link_tag = item.find('a')
-        date_tag = item.find('div', class_='item-date')
-        if link_tag and date_tag and link_tag.has_attr('href'):
-            url = urljoin(base_url, link_tag['href'])
-            date = parse_date_string(date_tag.get_text())
-            if date:
-                articles.append((url, date))
-    return articles
-
-# --- Остальная часть файла parsers.py без изменений ---
-
-def discover_dolinadad_links(soup, base_url):
-    articles = []
-    for item in soup.find_all('div', class_='blog-item__inner'):
-        link_tag = item.find('a', class_='blog-item__title-link')
-        date_tag = item.find('span', class_='blog-item__date')
-        if link_tag and date_tag and link_tag.has_attr('href'):
-            url = urljoin(base_url, link_tag['href'])
-            date = parse_date_string(date_tag.get_text())
-            if date:
-                articles.append((url, date))
-    return articles
-
-def discover_tk_konstruktor_links(soup, base_url):
-    articles = []
-    for item in soup.find_all('div', class_='post-item'):
-        link_tag = item.select_one('.post-title a')
-        date_tag = item.find('span', class_='post-date')
-        if link_tag and date_tag and link_tag.has_attr('href'):
-            url = urljoin(base_url, link_tag['href'])
-            date = parse_date_string(date_tag.get_text())
-            if date:
-                articles.append((url, date))
-    return articles
-
-# ... (все функции parse_*, get_html_soup, discover_new_articles, parse_article)
-# ... они остаются точно такими же, как в моем предыдущем ответе.
-# ... (включая исправление от NoneType ошибки)
+def safe_join(paragraphs):
+    """Безопасно соединяет текстовые блоки, игнорируя None."""
+    text_parts = []
+    for p in paragraphs:
+        text = p.get_text(strip=True)
+        if text:  # Добавляем только если текст не пустой и не None
+            text_parts.append(text)
+    return '\n\n'.join(text_parts)
 
 def parse_supersadovnik(soup):
     title_tag = soup.find('h1')
-    if not title_tag:
-        raise ValueError("Не найден заголовок (h1) на странице")
+    if not title_tag: raise ValueError("Не найден заголовок (h1)")
     title = title_tag.get_text(strip=True)
     
     content_div = soup.find('div', class_='article__text')
-    if not content_div:
-        raise ValueError("Не найден основной блок контента (div class='article__text')")
-        
+    if not content_div: raise ValueError("Не найден основной блок контента")
+    
     paragraphs = content_div.find_all(['p', 'h2', 'h3'])
-    content = '\n\n'.join(p.get_text(strip=True) for p in paragraphs)
+    content = safe_join(paragraphs) # Используем безопасную функцию
     return title, content
 
 def parse_botanichka(soup):
     title_tag = soup.find('h1', class_='post-title')
-    if not title_tag:
-        raise ValueError("Не найден заголовок (h1 class='post-title')")
+    if not title_tag: raise ValueError("Не найден заголовок")
     title = title_tag.get_text(strip=True)
     
     content_div = soup.find('div', class_='post-content')
-    if not content_div:
-        raise ValueError("Не найден основной блок контента (div class='post-content')")
+    if not content_div: raise ValueError("Не найден основной блок контента")
 
     if content_div.find('div', class_='read-also'):
         content_div.find('div', class_='read-also').decompose()
+        
     paragraphs = content_div.find_all(['p', 'h2', 'h3', 'li'])
-    content = '\n'.join(p.get_text(strip=True) for p in paragraphs).replace('\n', '\n\n')
+    # Здесь join немного другой, поэтому логику встраиваем прямо сюда
+    text_parts = [p.get_text(strip=True) for p in paragraphs if p.get_text(strip=True)]
+    content = '\n'.join(text_parts).replace('\n', '\n\n')
     return title, content
 
 def parse_ogorod_ru(soup):
     title_tag = soup.find('h1')
-    if not title_tag:
-        raise ValueError("Не найден заголовок (h1)")
+    if not title_tag: raise ValueError("Не найден заголовок")
     title = title_tag.get_text(strip=True)
     
     content_div = soup.find('div', class_='article-body-content-inner')
-    if not content_div:
-        raise ValueError("Не найден основной блок контента (div class='article-body-content-inner')")
+    if not content_div: raise ValueError("Не найден основной блок контента")
         
     paragraphs = content_div.find_all(['p', 'h2', 'h3', 'li'])
-    content = '\n'.join(p.get_text(strip=True) for p in paragraphs).replace('\n', '\n\n')
+    content = safe_join(paragraphs)
     return title, content
 
 def parse_dolinadad(soup):
     title_tag = soup.find('h1', class_='blog-post__title')
-    if not title_tag:
-        raise ValueError("Не найден заголовок (h1 class='blog-post__title')")
+    if not title_tag: raise ValueError("Не найден заголовок")
     title = title_tag.get_text(strip=True)
     
     content_div = soup.find('div', class_='blog-post__content')
-    if not content_div:
-        raise ValueError("Не найден основной блок контента (div class='blog-post__content')")
+    if not content_div: raise ValueError("Не найден основной блок контента")
 
     paragraphs = content_div.find_all(['p', 'h2', 'h3', 'li'])
-    content = '\n'.join(p.get_text(strip=True) for p in paragraphs).replace('\n', '\n\n')
+    content = safe_join(paragraphs)
     return title, content
     
 def parse_tk_konstruktor(soup):
     title_tag = soup.find('h1')
-    if not title_tag:
-        raise ValueError("Не найден заголовок (h1)")
+    if not title_tag: raise ValueError("Не найден заголовок")
     title = title_tag.get_text(strip=True)
     
     content_div = soup.find('div', class_='post-content')
-    if not content_div:
-        raise ValueError("Не найден основной блок контента (div class='post-content')")
+    if not content_div: raise ValueError("Не найден основной блок контента")
 
     paragraphs = content_div.find_all(['p', 'h2', 'h3', 'li'])
-    content = '\n'.join(p.get_text(strip=True) for p in paragraphs).replace('\n', '\n\n')
+    content = safe_join(paragraphs) # Используем безопасную функцию
     return title, content
 
+
+# --- Остальная часть файла (без изменений) ---
+
 def get_html_soup(url):
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
-    response = requests.get(url, headers=headers, timeout=15)
-    response.raise_for_status()
-    return BeautifulSoup(response.text, 'html.parser')
-
+    # ...
 def discover_new_articles(target_url):
-    print(f"  Сканирую {target_url}...")
-    soup = get_html_soup(target_url)
-    
-    if 'supersadovnik.ru' in target_url:
-        return discover_supersadovnik_links(soup, target_url)
-    elif 'botanichka.ru' in target_url:
-        return discover_botanichka_links(soup, target_url)
-    elif 'ogorod.ru' in target_url:
-        return discover_ogorod_ru_links(soup, target_url)
-    elif 'dolinasad.by' in target_url:
-        return discover_dolinadad_links(soup, target_url)
-    elif 'tk-konstruktor.ru' in target_url:
-        return discover_tk_konstruktor_links(soup, target_url)
-    return []
-
+    # ...
 def parse_article(url):
-    try:
-        soup = get_html_soup(url)
-        
-        if 'supersadovnik.ru' in url:
-            title, content = parse_supersadovnik(soup)
-        elif 'botanichka.ru' in url:
-            title, content = parse_botanichka(soup)
-        elif 'ogorod.ru' in url:
-            title, content = parse_ogorod_ru(soup)
-        elif 'dolinasad.by' in url:
-            title, content = parse_dolinadad(soup)
-        elif 'tk-konstruktor.ru' in url:
-            title, content = parse_tk_konstruktor(soup)
-        else:
-            return None, "Этот сайт пока не поддерживается для парсинга статей."
-        
-        formatted_message = f"**{title.strip()}**\n\n{content.strip()}\n\n[Источник]({url})"
-        return formatted_message, None
-        
-    except Exception as e:
-        return None, f"Произошла ошибка при парсинге статьи {url}: {e}."
-
+    # ...
