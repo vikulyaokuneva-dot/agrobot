@@ -5,7 +5,8 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from datetime import datetime, timedelta
 
-# --- Вспомогательная функция для разбора дат ---
+# --- Вспомогательные функции ---
+
 def parse_date_string(date_str):
     """
     Пытается разобрать строку с датой в разных форматах.
@@ -21,10 +22,8 @@ def parse_date_string(date_str):
         'июля': 7, 'августа': 8, 'сентября': 9, 'октября': 10, 'ноября': 11, 'декабря': 12
     }
 
-    if 'сегодня' in date_str:
-        return datetime.now()
-    if 'вчера' in date_str:
-        return datetime.now() - timedelta(days=1)
+    if 'сегодня' in date_str: return datetime.now()
+    if 'вчера' in date_str: return datetime.now() - timedelta(days=1)
 
     try:
         parts = date_str.split()
@@ -42,6 +41,21 @@ def parse_date_string(date_str):
         pass
 
     return None
+
+def safe_join(paragraphs):
+    """Безопасно соединяет текстовые блоки, игнорируя None."""
+    text_parts = []
+    for p in paragraphs:
+        text = p.get_text(strip=True)
+        if text:
+            text_parts.append(text)
+    return '\n\n'.join(text_parts)
+
+def escape_markdown(text: str) -> str:
+    """Экранирует специальные символы для Telegram MarkdownV2."""
+    escape_chars = r'_*[]()~`>#+-.=|{}!'
+    # Экранируем все, кроме символов, которые мы сами используем для форматирования
+    return ''.join(f'\\{char}' if char in escape_chars else char for char in text)
 
 # --- Функции ОБНАРУЖЕНИЯ ссылок ---
 
@@ -108,23 +122,12 @@ def discover_tk_konstruktor_links(soup, base_url):
 
 # --- Функции ПАРСИНГА отдельных статей ---
 
-def safe_join(paragraphs):
-    """Безопасно соединяет текстовые блоки, игнорируя None."""
-    text_parts = []
-    for p in paragraphs:
-        text = p.get_text(strip=True)
-        if text:
-            text_parts.append(text)
-    return '\n\n'.join(text_parts)
-
 def parse_supersadovnik(soup):
     title_tag = soup.find('h1')
     if not title_tag: raise ValueError("Не найден заголовок (h1)")
     title = title_tag.get_text(strip=True)
-    
     content_div = soup.find('div', class_='article__text')
     if not content_div: raise ValueError("Не найден основной блок контента (div class='article__text')")
-    
     paragraphs = content_div.find_all(['p', 'h2', 'h3'])
     content = safe_join(paragraphs)
     return title, content
@@ -133,13 +136,10 @@ def parse_botanichka(soup):
     title_tag = soup.find('h1', class_='post-title')
     if not title_tag: raise ValueError("Не найден заголовок (h1 class='post-title')")
     title = title_tag.get_text(strip=True)
-    
     content_div = soup.find('div', class_='post-content')
     if not content_div: raise ValueError("Не найден основной блок контента (div class='post-content')")
-
     if content_div.find('div', class_='read-also'):
         content_div.find('div', class_='read-also').decompose()
-        
     text_parts = [p.get_text(strip=True) for p in content_div.find_all(['p', 'h2', 'h3', 'li']) if p.get_text(strip=True)]
     content = '\n'.join(text_parts).replace('\n', '\n\n')
     return title, content
@@ -148,10 +148,8 @@ def parse_ogorod_ru(soup):
     title_tag = soup.find('h1')
     if not title_tag: raise ValueError("Не найден заголовок (h1)")
     title = title_tag.get_text(strip=True)
-    
     content_div = soup.find('div', class_='article-body-content-inner')
     if not content_div: raise ValueError("Не найден основной блок контента (div class='article-body-content-inner')")
-        
     paragraphs = content_div.find_all(['p', 'h2', 'h3', 'li'])
     content = safe_join(paragraphs)
     return title, content
@@ -160,10 +158,8 @@ def parse_dolinadad(soup):
     title_tag = soup.find('h1', class_='blog-post__title')
     if not title_tag: raise ValueError("Не найден заголовок (h1 class='blog-post__title')")
     title = title_tag.get_text(strip=True)
-    
     content_div = soup.find('div', class_='blog-post__content')
     if not content_div: raise ValueError("Не найден основной блок контента (div class='blog-post__content')")
-
     paragraphs = content_div.find_all(['p', 'h2', 'h3', 'li'])
     content = safe_join(paragraphs)
     return title, content
@@ -172,10 +168,8 @@ def parse_tk_konstruktor(soup):
     title_tag = soup.find('h1')
     if not title_tag: raise ValueError("Не найден заголовок (h1)")
     title = title_tag.get_text(strip=True)
-    
     content_div = soup.find('div', class_='post-content')
     if not content_div: raise ValueError("Не найден основной блок контента (div class='post-content')")
-
     paragraphs = content_div.find_all(['p', 'h2', 'h3', 'li'])
     content = safe_join(paragraphs)
     return title, content
@@ -194,7 +188,6 @@ def discover_new_articles(target_url):
     """Диспетчер обнаружения: вызывает нужный discover-парсер."""
     print(f"  Сканирую {target_url}...")
     soup = get_html_soup(target_url)
-    
     if 'supersadovnik.ru' in target_url:
         return discover_supersadovnik_links(soup, target_url)
     elif 'botanichka.ru' in target_url:
@@ -211,7 +204,6 @@ def parse_article(url):
     """Диспетчер парсинга: вызывает нужный parse-парсер для статьи."""
     try:
         soup = get_html_soup(url)
-        
         if 'supersadovnik.ru' in url:
             title, content = parse_supersadovnik(soup)
         elif 'botanichka.ru' in url:
@@ -225,11 +217,13 @@ def parse_article(url):
         else:
             return None, "Этот сайт пока не поддерживается для парсинга статей."
         
-        # Финальная проверка, что контент не пустой
         if not title or not content:
             raise ValueError("Заголовок или контент статьи оказались пустыми после парсинга.")
 
-        formatted_message = f"**{title.strip()}**\n\n{content.strip()}\n\n[Источник]({url})"
+        safe_title = escape_markdown(title.strip())
+        safe_content = escape_markdown(content.strip())
+        
+        formatted_message = f"*{safe_title}*\n\n{safe_content}\n\n[Источник]({url})"
         return formatted_message, None
         
     except Exception as e:
