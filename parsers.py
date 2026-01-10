@@ -14,48 +14,30 @@ def parse_date_string(date_str):
     """
     if not date_str:
         return None
-        
     date_str = date_str.lower().strip()
-    
-    MONTHS = {
-        'января': 1, 'февраля': 2, 'марта': 3, 'апреля': 4, 'мая': 5, 'июня': 6,
-        'июля': 7, 'августа': 8, 'сентября': 9, 'октября': 10, 'ноября': 11, 'декабря': 12
-    }
-
+    MONTHS = { 'января': 1, 'февраля': 2, 'марта': 3, 'апреля': 4, 'мая': 5, 'июня': 6, 'июля': 7, 'августа': 8, 'сентября': 9, 'октября': 10, 'ноября': 11, 'декабря': 12 }
     if 'сегодня' in date_str: return datetime.now()
     if 'вчера' in date_str: return datetime.now() - timedelta(days=1)
-
     try:
         parts = date_str.split()
         if len(parts) == 3 and parts[1] in MONTHS:
-            day = int(parts[0])
-            month = MONTHS[parts[1]]
-            year = int(parts[2])
-            return datetime(year, month, day)
-    except (ValueError, IndexError):
-        pass
-
+            return datetime(int(parts[2]), MONTHS[parts[1]], int(parts[0]))
+    except (ValueError, IndexError): pass
     try:
         return datetime.strptime(date_str, '%d.%m.%Y')
-    except ValueError:
-        pass
-
+    except ValueError: pass
     return None
 
 def safe_join(paragraphs):
     """Безопасно соединяет текстовые блоки, игнорируя None."""
-    text_parts = []
-    for p in paragraphs:
-        text = p.get_text(strip=True)
-        if text:
-            text_parts.append(text)
+    text_parts = [p.get_text(strip=True) for p in paragraphs if p.get_text(strip=True)]
     return '\n\n'.join(text_parts)
 
 def escape_markdown(text: str) -> str:
     """Экранирует специальные символы для Telegram MarkdownV2."""
     escape_chars = r'_*[]()~`>#+-.=|{}!'
-    # Экранируем все, кроме символов, которые мы сами используем для форматирования
     return ''.join(f'\\{char}' if char in escape_chars else char for char in text)
+
 
 # --- Функции ОБНАРУЖЕНИЯ ссылок ---
 
@@ -175,13 +157,20 @@ def parse_tk_konstruktor(soup):
     return title, content
 
 
-# --- Универсальные функции и диспетчеры ---
-
 def get_html_soup(url):
-    """Универсальная функция для получения 'супа' со страницы."""
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+    """
+    Универсальная функция для получения 'супа' со страницы.
+    Теперь с более реалистичными заголовками для обхода защиты.
+    """
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Referer': 'https://www.google.com/'
+    }
     response = requests.get(url, headers=headers, timeout=15)
-    response.raise_for_status()
+    # Эта строка правильно определит ошибку, если она все же произойдет
+    response.raise_for_status() 
     return BeautifulSoup(response.text, 'html.parser')
 
 def discover_new_articles(target_url):
