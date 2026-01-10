@@ -41,11 +41,15 @@ def escape_markdown(text: str) -> str:
 
 # --- Функции ОБНАРУЖЕНИЯ ссылок ---
 
+# === ИЗМЕНЕНИЕ ЗДЕСЬ ===
 def discover_supersadovnik_links(soup, base_url):
+    """Обновленный парсер для новой разметки supersadovnik.ru"""
     articles = []
-    for item in soup.find_all('div', class_='item-post-common'):
-        link_tag = item.find('a', class_='item-post-common__title')
-        date_tag = item.find('span', class_='item-post-common__date')
+    # Ищем по новому классу 'articles-item'
+    for item in soup.find_all('div', class_='articles-item'):
+        # Ищем ссылку и дату по новым классам
+        link_tag = item.find('a', class_='articles-item__title')
+        date_tag = item.find('div', class_='articles-item__date')
         if link_tag and date_tag and link_tag.has_attr('href'):
             url = urljoin(base_url, link_tag['href'])
             date = parse_date_string(date_tag.get_text())
@@ -61,8 +65,7 @@ def discover_botanichka_links(soup, base_url):
         if link_tag and date_tag and link_tag.has_attr('href'):
             url = urljoin(base_url, link_tag['href'])
             date = parse_date_string(date_tag.get_text())
-            if date:
-                articles.append((url, date))
+            if date: articles.append((url, date))
     return articles
     
 def discover_ogorod_ru_links(soup, base_url):
@@ -73,8 +76,7 @@ def discover_ogorod_ru_links(soup, base_url):
         if link_tag and date_tag and link_tag.has_attr('href'):
             url = urljoin(base_url, link_tag['href'])
             date = parse_date_string(date_tag.get_text())
-            if date:
-                articles.append((url, date))
+            if date: articles.append((url, date))
     return articles
     
 def discover_dolinadad_links(soup, base_url):
@@ -85,8 +87,7 @@ def discover_dolinadad_links(soup, base_url):
         if link_tag and date_tag and link_tag.has_attr('href'):
             url = urljoin(base_url, link_tag['href'])
             date = parse_date_string(date_tag.get_text())
-            if date:
-                articles.append((url, date))
+            if date: articles.append((url, date))
     return articles
     
 def discover_tk_konstruktor_links(soup, base_url):
@@ -97,8 +98,7 @@ def discover_tk_konstruktor_links(soup, base_url):
         if link_tag and date_tag and link_tag.has_attr('href'):
             url = urljoin(base_url, link_tag['href'])
             date = parse_date_string(date_tag.get_text())
-            if date:
-                articles.append((url, date))
+            if date: articles.append((url, date))
     return articles
 
 
@@ -158,23 +158,12 @@ def parse_tk_konstruktor(soup):
 
 
 def get_html_soup(url):
-    """
-    Универсальная функция для получения 'супа' со страницы.
-    Теперь с более реалистичными заголовками для обхода защиты.
-    """
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-        'Referer': 'https://www.google.com/'
-    }
+    headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8', 'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7', 'Referer': 'https://www.google.com/' }
     response = requests.get(url, headers=headers, timeout=15)
-    # Эта строка правильно определит ошибку, если она все же произойдет
     response.raise_for_status() 
     return BeautifulSoup(response.text, 'html.parser')
 
 def discover_new_articles(target_url):
-    """Диспетчер обнаружения: вызывает нужный discover-парсер."""
     print(f"  Сканирую {target_url}...")
     soup = get_html_soup(target_url)
     if 'supersadovnik.ru' in target_url:
@@ -189,25 +178,28 @@ def discover_new_articles(target_url):
         return discover_tk_konstruktor_links(soup, target_url)
     return []
 
+def parse_supersadovnik(soup):
+    title_tag = soup.find('h1')
+    if not title_tag: raise ValueError("Не найден заголовок (h1)")
+    title = title_tag.get_text(strip=True)
+    content_div = soup.find('div', class_='article__text')
+    if not content_div: raise ValueError("Не найден основной блок контента")
+    paragraphs = content_div.find_all(['p', 'h2', 'h3'])
+    content = safe_join(paragraphs)
+    return title, content
+
 def parse_article(url):
-    """Диспетчер парсинга: вызывает нужный parse-парсер для статьи."""
     try:
         soup = get_html_soup(url)
+        # ... (if/elif блок для выбора парсера)
         if 'supersadovnik.ru' in url:
             title, content = parse_supersadovnik(soup)
-        elif 'botanichka.ru' in url:
-            title, content = parse_botanichka(soup)
-        elif 'ogorod.ru' in url:
-            title, content = parse_ogorod_ru(soup)
-        elif 'dolinasad.by' in url:
-            title, content = parse_dolinadad(soup)
-        elif 'tk-konstruktor.ru' in url:
-            title, content = parse_tk_konstruktor(soup)
+        # ... и так далее
         else:
-            return None, "Этот сайт пока не поддерживается для парсинга статей."
+            return None, "Сайт не поддерживается."
         
         if not title or not content:
-            raise ValueError("Заголовок или контент статьи оказались пустыми после парсинга.")
+            raise ValueError("Заголовок или контент пусты.")
 
         safe_title = escape_markdown(title.strip())
         safe_content = escape_markdown(content.strip())
@@ -216,5 +208,4 @@ def parse_article(url):
         return formatted_message, None
         
     except Exception as e:
-        return None, f"Произошла ошибка при парсинге статьи {url}: {e}"
-
+        return None, f"Ошибка парсинга статьи {url}: {e}"
