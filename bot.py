@@ -14,7 +14,6 @@ from target_pages import TARGET_PAGES
 # --- Конфигурация ---
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-# ВАЖНО: Замените 'ИМЯ_ВАШЕГО_СЕКРЕТА' на реальное имя секрета в GitHub
 CHANNEL_ID = os.getenv("CHANNEL_ID") 
 STORAGE_FILE = "storage.json"
 DAYS_LIMIT = 90
@@ -75,9 +74,10 @@ async def main():
     # --- Шаг 3: ФИЛЬТРАЦИЯ ПО "ПАМЯТИ" ---
     unposted_articles = [url for url in unique_recent_urls if url not in posted_urls]
     
+    # === ИСПРАВЛЕНИЕ ЗДЕСЬ ===
     if not unposted_articles:
         print("Новых, еще не опубликованных статей в заданном диапазоне дат не найдено. Завершаю работу.")
-        return
+        return # <-- ДОБАВЛЕН ЭТОТ RETURN, ЧТОБЫ ОСТАНОВИТЬ ВЫПОЛНЕНИЕ
 
     print(f"Найдено {len(unposted_articles)} новых статей для публикации.")
     
@@ -96,7 +96,6 @@ async def main():
         bot = telegram.Bot(token=BOT_TOKEN)
         
         if len(formatted_article) > 4096:
-            # Ищем последнее безопасное место для обрезки
             safe_cutoff = formatted_article.rfind('\n\n', 0, 4000)
             if safe_cutoff == -1: safe_cutoff = 4000
             
@@ -123,4 +122,3 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
-
