@@ -15,7 +15,7 @@ from target_pages import TARGET_PAGES
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 # ВАЖНО: Замените 'ИМЯ_ВАШЕГО_СЕКРЕТА' на реальное имя секрета в GitHub
-CHANNEL_ID = os.getenv("ИМЯ_ВАШЕГО_СЕКРЕТА") 
+CHANNEL_ID = os.getenv("CHANNEL_ID") 
 STORAGE_FILE = "storage.json"
 DAYS_LIMIT = 90
 
