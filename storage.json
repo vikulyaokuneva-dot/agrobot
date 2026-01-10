@@ -1,5 +1,5 @@
 {
-  "posts_count": 46,
+  "posts_count": 47,
   "published_links": {
     "https://rsute.ru/1125215-gde-i-kak-hranit-kartoshku-chtoby-ona-ne-prorastala-i-ne-smorshhivalas-6-mesyaczev.html": true,
     "https://rsute.ru/1125073-podbiraem-semena-gramotno-na-chto-obratit-vnimanie-ogorodnikam.html": true,
@@ -31,7 +31,8 @@
     "https://www.supersadovnik.ru/plant/alokazija-1745": true,
     "https://www.supersadovnik.ru/text/rubit-i-nikakih-gvozdej-pochemu-zhivaja-jolka-na-prazdnik-jekologichnee-i-poleznee-1014534": true,
     "https://www.supersadovnik.ru/text/plastikovye-ili-zhivye-eli-nauchnye-istochniki-k-state-1014535": true,
-    "https://www.supersadovnik.ru/text/prostye-uprazhnenija-dlja-pozhilyh-kotorye-pomogut-ukrepit-myshcy-nog-i-ne-travmirovatsja-zimoj-1014533": true
+    "https://www.supersadovnik.ru/text/prostye-uprazhnenija-dlja-pozhilyh-kotorye-pomogut-ukrepit-myshcy-nog-i-ne-travmirovatsja-zimoj-1014533": true,
+    "https://www.supersadovnik.ru/plant/bor-1744": true
   },
   "sources_stats": {
     "https://rsute.ru/sad-ogorod/feed": {
@@ -39,12 +40,12 @@
       "published": 13
     },
     "https://7dach.ru/rss": {
-      "checked": 1800,
+      "checked": 1900,
       "published": 0
     },
     "https://www.supersadovnik.ru/rss": {
-      "checked": 36,
-      "published": 18
+      "checked": 38,
+      "published": 19
     }
   }
 }
