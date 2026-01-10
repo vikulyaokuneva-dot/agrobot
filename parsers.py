@@ -4,7 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
-# --- Функции ОБНАРУЖЕНИЯ ссылок ---
+# --- Функции ОБНАРУЖЕНИЯ ссылок (без изменений) ---
 
 def discover_supersadovnik_links(soup, base_url):
     links = set()
@@ -43,18 +43,33 @@ def discover_tk_konstruktor_links(soup, base_url):
     return list(links)
 
 
-# --- Функции ПАРСИНГА отдельных статей ---
+# --- Функции ПАРСИНГА отдельных статей (С ИСПРАВЛЕНИЯМИ) ---
 
 def parse_supersadovnik(soup):
-    title = soup.find('h1').get_text(strip=True)
+    title_tag = soup.find('h1')
+    if not title_tag:
+        raise ValueError("Не найден заголовок (h1) на странице")
+    title = title_tag.get_text(strip=True)
+    
     content_div = soup.find('div', class_='article__text')
+    # === ИСПРАВЛЕНИЕ ЗДЕСЬ ===
+    if not content_div:
+        raise ValueError("Не найден основной блок контента (div class='article__text')")
+        
     paragraphs = content_div.find_all(['p', 'h2', 'h3'])
     content = '\n\n'.join(p.get_text(strip=True) for p in paragraphs)
     return title, content
 
 def parse_botanichka(soup):
-    title = soup.find('h1', class_='post-title').get_text(strip=True)
+    title_tag = soup.find('h1', class_='post-title')
+    if not title_tag:
+        raise ValueError("Не найден заголовок (h1 class='post-title')")
+    title = title_tag.get_text(strip=True)
+    
     content_div = soup.find('div', class_='post-content')
+    if not content_div:
+        raise ValueError("Не найден основной блок контента (div class='post-content')")
+
     if content_div.find('div', class_='read-also'):
         content_div.find('div', class_='read-also').decompose()
     paragraphs = content_div.find_all(['p', 'h2', 'h3', 'li'])
@@ -62,22 +77,43 @@ def parse_botanichka(soup):
     return title, content
 
 def parse_ogorod_ru(soup):
-    title = soup.find('h1').get_text(strip=True)
+    title_tag = soup.find('h1')
+    if not title_tag:
+        raise ValueError("Не найден заголовок (h1)")
+    title = title_tag.get_text(strip=True)
+    
     content_div = soup.find('div', class_='article-body-content-inner')
+    if not content_div:
+        raise ValueError("Не найден основной блок контента (div class='article-body-content-inner')")
+        
     paragraphs = content_div.find_all(['p', 'h2', 'h3', 'li'])
     content = '\n'.join(p.get_text(strip=True) for p in paragraphs).replace('\n', '\n\n')
     return title, content
 
 def parse_dolinadad(soup):
-    title = soup.find('h1', class_='blog-post__title').get_text(strip=True)
+    title_tag = soup.find('h1', class_='blog-post__title')
+    if not title_tag:
+        raise ValueError("Не найден заголовок (h1 class='blog-post__title')")
+    title = title_tag.get_text(strip=True)
+    
     content_div = soup.find('div', class_='blog-post__content')
+    if not content_div:
+        raise ValueError("Не найден основной блок контента (div class='blog-post__content')")
+
     paragraphs = content_div.find_all(['p', 'h2', 'h3', 'li'])
     content = '\n'.join(p.get_text(strip=True) for p in paragraphs).replace('\n', '\n\n')
     return title, content
     
 def parse_tk_konstruktor(soup):
-    title = soup.find('h1').get_text(strip=True)
+    title_tag = soup.find('h1')
+    if not title_tag:
+        raise ValueError("Не найден заголовок (h1)")
+    title = title_tag.get_text(strip=True)
+    
     content_div = soup.find('div', class_='post-content')
+    if not content_div:
+        raise ValueError("Не найден основной блок контента (div class='post-content')")
+
     paragraphs = content_div.find_all(['p', 'h2', 'h3', 'li'])
     content = '\n'.join(p.get_text(strip=True) for p in paragraphs).replace('\n', '\n\n')
     return title, content
@@ -94,7 +130,7 @@ def get_html_soup(url):
 
 
 def discover_new_articles(target_url):
-    """Диспетчер обнаружения: вызывает нужный discover-парсер."""
+    # ... (код этой функции не меняется)
     print(f"  Сканирую {target_url}...")
     soup = get_html_soup(target_url)
     
@@ -127,10 +163,12 @@ def parse_article(url):
         elif 'tk-konstruktor.ru' in url:
             title, content = parse_tk_konstruktor(soup)
         else:
-            return None, "Этот сайт пока не поддерживается для парсинга статей. 😕"
+            return None, "Этот сайт пока не поддерживается для парсинга статей."
         
         formatted_message = f"**{title.strip()}**\n\n{content.strip()}\n\n[Источник]({url})"
         return formatted_message, None
         
     except Exception as e:
+        # Теперь эта секция будет ловить и наши новые ошибки ValueError
         return None, f"Произошла ошибка при парсинге статьи {url}: {e}."
+
