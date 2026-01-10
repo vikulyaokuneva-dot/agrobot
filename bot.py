@@ -13,7 +13,7 @@ from target_pages import TARGET_PAGES
 # --- Конфигурация ---
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHANNEL_ID = os.getenv("CHANNEL_AGRO_ID")
+CHANNEL_ID = os.getenv("CHANNEL_ID")
 STORAGE_FILE = "storage.json"
 
 # --- Функции для работы с хранилищем ---
