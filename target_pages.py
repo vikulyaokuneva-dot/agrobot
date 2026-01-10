@@ -3,23 +3,22 @@
 # Список URL-адресов, на которых бот будет искать новые статьи.
 # Это могут быть главные страницы разделов, блогов и т.д.
 TARGET_PAGES = [
-    # Supersadovnik: Раздел "Все материалы" отсортирован по новизне
+    # === ИЗМЕНЕНИЕ ЗДЕСЬ ===
+    # Убираем старую ссылку и добавляем новые, более эффективные
     'https://www.supersadovnik.ru/sad-i-ogorod-289',
     'https://www.supersadovnik.ru/podgotovka-sada-k-zime-301',
     'https://www.supersadovnik.ru/idei-dlya-sada-263',
     
-    # Botanichka: Раздел "Новое на сайте"
+    # Botanichka: Главная страница блога (эта ссылка верна)
     'https://www.botanichka.ru/blog/',
     
-    # Ogorod.ru: разделы по темам
+    # Ogorod.ru: разделы по темам (эти ссылки верны)
     'https://ogorod.ru/ru/ogorod', # Огород
     'https://ogorod.ru/ru/sad',     # Сад
     
-    # Dolinasad.by: основной блог
+    # Dolinasad.by: основной блог (эта ссылка верна)
     'https://dolinasad.by/blog/',
     
-    # tk-konstruktor.ru: основной блог
-    'https://tk-konstruktor.ru/',
-    
-    # Вы можете добавить больше ссылок сюда
+    # tk-konstruktor.ru: основной блог (эта ссылка верна)
+    'https://tk-konstruktor.ru/stati/',
 ]
