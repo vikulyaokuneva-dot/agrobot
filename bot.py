@@ -14,17 +14,31 @@ from target_pages import TARGET_PAGES
 # --- Конфигурация ---
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHANNEL_ID = os.getenv("CHANNEL_ID") # Убедитесь, что имя секрета верное
+CHANNEL_ID = os.getenv("ИМЯ_ВАШЕГО_СЕКРЕТА") # <-- Не забудьте проверить имя секрета
 STORAGE_FILE = "storage.json"
-DAYS_LIMIT = 90 # Глубина поиска в днях
+DAYS_LIMIT = 90
 
-# --- Функции для работы с хранилищем (без изменений) ---
+# --- Функции для работы с хранилищем ---
+
 def load_posted_articles():
-    # ...
+    """Загружает список уже опубликованных URL из storage.json."""
+    if not os.path.exists(STORAGE_FILE):
+        return []
+    try:
+        with open(STORAGE_FILE, 'r') as f:
+            data = json.load(f)
+            # Убедимся, что это список (на случай пустого файла)
+            return data if isinstance(data, list) else []
+    except json.JSONDecodeError:
+        return []
+
 def save_posted_articles(posted_urls):
-    # ...
+    """Сохраняет обновленный список URL в storage.json."""
+    with open(STORAGE_FILE, 'w') as f:
+        json.dump(posted_urls, f, indent=2)
 
 async def main():
+    """Главная функция, выполняющая всю работу."""
     if not BOT_TOKEN or not CHANNEL_ID:
         print("Ошибка: BOT_TOKEN или CHANNEL_ID не найдены.")
         return
@@ -39,12 +53,11 @@ async def main():
     all_discovered_articles = []
     for page in TARGET_PAGES:
         try:
-            # Теперь получаем список кортежей (url, date)
             new_articles = discover_new_articles(page)
             all_discovered_articles.extend(new_articles)
             print(f"  Найдено {len(new_articles)} статей на {page}")
         except Exception as e:
-            print(f"  Не удалось просканировать {page}. Ошибка: {e}")
+            print(f"  Не удалось просканировать {page}. Ошибка: {repr(e)}") # Используем repr для безопасности
             
     # --- Шаг 2: ФИЛЬТРАЦИЯ ПО ДАТЕ ---
     print(f"\nНачинаю фильтрацию. Всего найдено {len(all_discovered_articles)} статей.")
@@ -52,13 +65,11 @@ async def main():
     limit_date = datetime.now() - timedelta(days=DAYS_LIMIT)
     
     for url, article_date in all_discovered_articles:
-        # Проверяем, что дата была извлечена и она не старше лимита
         if article_date and article_date > limit_date:
             recent_articles.append(url)
             
     print(f"Найдено {len(recent_articles)} статей, опубликованных за последние {DAYS_LIMIT} дней.")
     
-    # Убираем дубликаты, если одна статья на нескольких страницах
     unique_recent_urls = set(recent_articles)
 
     # --- Шаг 3: ФИЛЬТРАЦИЯ ПО "ПАМЯТИ" ---
@@ -83,15 +94,28 @@ async def main():
     # Отправляем в Telegram
     try:
         bot = telegram.Bot(token=BOT_TOKEN)
-        # ... (код отправки, обрезки и сохранения остается таким же)
         
-        print("Статья успешно опубликована!")
+        if len(formatted_article) > 4096:
+            text_to_send = formatted_article[:4000] + "\n\n...(статья слишком длинная, полная версия по ссылке)"
+        else:
+            text_to_send = formatted_article
+
+        await bot.send_message(
+            chat_id=CHANNEL_ID,
+            text=text_to_send,
+            parse_mode='Markdown'
+        )
+        
+        print(f"Статья успешно опубликована в канале {CHANNEL_ID}.")
+        
         posted_urls.append(url_to_post)
         save_posted_articles(posted_urls)
         print("Файл 'storage.json' обновлен.")
 
     except Exception as e:
-        print(f"!!! Ошибка при отправке в Telegram: {e}")
+        # === ИСПРАВЛЕНИЕ ЗДЕСЬ ===
+        # Используем repr(e), чтобы безопасно напечатать любой объект ошибки
+        print(f"!!! Произошла ошибка при отправке в Telegram: {repr(e)}")
 
     print("=== РАБОТА БОТА ЗАВЕРШЕНА ===")
 
