@@ -1,320 +1,107 @@
-import json
+# bot.py
+
 import os
-import feedparser
-import requests
+import json
+import random
+import telegram
 import asyncio
-from datetime import datetime
-from bs4 import BeautifulSoup
-from telegram import Bot
+from dotenv import load_dotenv
 
-from rss_sources import RSS_SOURCES
+from parsers import discover_new_articles, parse_article
+from target_pages import TARGET_PAGES
 
-print("🔥 BOT.PY LOADED 🔥")
-
-TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = "@helpgardener"
+# --- Конфигурация ---
+load_dotenv()
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHANNEL_ID = os.getenv("CHANNEL_ID")
 STORAGE_FILE = "storage.json"
 
-EMOJIS = ["🌱", "🪴", "🌼", "🌿", "🍃"]
-HASHTAGS = "#сад #огород #дача"
+# --- Функции для работы с хранилищем ---
 
-# ---------- ВЕСА ИСТОЧНИКОВ ----------
-SOURCE_WEIGHTS = {
-    "https://rsute.ru/sad-ogorod/feed": 5,
-    "https://www.ogorod.ru/rss": 4,
-    "https://7dach.ru/rss": 3,
-    "https://www.greeninfo.ru/rss.html": 2,
-    "https://www.supersadovnik.ru/rss": 2,
-}
-
-# ---------- МИНИ-СЕРИИ ----------
-SERIES_RULES = {
-    "🥔 Неделя картофеля": ["картоф", "клубн"],
-    "🌱 Всё о рассаде": ["рассад", "сеян"],
-    "🌿 Болезни растений": ["болезн", "гниль", "пятн"],
-    "🪴 Полив без ошибок": ["полив", "влаг"],
-    "📦 Хранение урожая": ["хранен", "погреб", "подвал"],
-}
-TAG_RULES = {
-    "#семена": ["семен", "семян"],
-    "#посев": ["посев", "сеять", "сеян"],
-    "#рассада": ["рассад"],
-    "#полив": ["полив", "влаг"],
-    "#удобрения": ["удобрен", "подкорм"],
-    "#болезни": ["болезн", "гниль", "пятн"],
-    "#хранение": ["хранен", "погреб", "подвал"],
-    "#обрезка": ["обрез", "формиров"],
-}
-
-# ---------- STORAGE ----------
-
-def load_storage():
+def load_posted_articles():
+    """Загружает список уже опубликованных URL из storage.json."""
     if not os.path.exists(STORAGE_FILE):
-        return {
-            "posts_count": 0,
-            "published_links": {},
-            "sources_stats": {}
-        }
-
-    with open(STORAGE_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    # миграция старого формата
-    if "published_links" not in data:
-        return {
-            "posts_count": len(data),
-            "published_links": data,
-            "sources_stats": {}
-        }
-
-    data.setdefault("sources_stats", {})
-    return data
-
-
-def save_storage(data):
-    with open(STORAGE_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-def detect_tags(title, text):
-    combined = f"{title} {text}".lower()
-    tags = []
-
-    for tag, keywords in TAG_RULES.items():
-        for kw in keywords:
-            if kw in combined:
-                tags.append(tag)
-                break
-
-    return tags[:2]  # не больше 2 тематических
-
-
-def increment_posts_count(storage):
-    storage["posts_count"] = storage.get("posts_count", 0) + 1
-
-
-def should_make_short_post(posts_count):
-    return posts_count != 0 and posts_count % 10 == 0
-
-
-# ---------- СТАТИСТИКА ИСТОЧНИКОВ ----------
-
-def update_source_stats(storage, source, published=False):
-    stats = storage.setdefault("sources_stats", {})
-    source_stat = stats.setdefault(source, {"checked": 0, "published": 0})
-
-    source_stat["checked"] += 1
-    if published:
-        source_stat["published"] += 1
-
-
-# ---------- УТИЛИТЫ ----------
-
-def clean_html(text):
-    soup = BeautifulSoup(text, "html.parser")
-    return soup.get_text(separator=" ").strip()
-
-
-def detect_series(title, text):
-    combined = f"{title} {text}".lower()
-    for name, keywords in SERIES_RULES.items():
-        for kw in keywords:
-            if kw in combined:
-                return name
-    return None
-
-
-# ---------- ИЗВЛЕЧЕНИЕ КОНТЕНТА ----------
-
-def extract_image(entry):
-    if "media_content" in entry:
-        media = entry.media_content
-        if media and media[0].get("url"):
-            return media[0]["url"]
-
-    if "enclosures" in entry and entry.enclosures:
-        enc = entry.enclosures
-        if enc and enc[0].get("href"):
-            return enc[0]["href"]
-
-    soup = BeautifulSoup(entry.get("description", ""), "html.parser")
-    img = soup.find("img")
-    if img and img.get("src"):
-        return img["src"]
-
+        return []
     try:
-        response = requests.get(
-            entry.link,
-            timeout=10,
-            headers={"User-Agent": "Mozilla/5.0"}
-        )
-        page = BeautifulSoup(response.text, "html.parser")
-        og = page.find("meta", property="og:image")
-        if og and og.get("content"):
-            return og["content"]
-    except Exception:
-        pass
+        with open(STORAGE_FILE, 'r') as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        # Если файл пустой или поврежден
+        return []
 
-    return None
+def save_posted_articles(posted_urls):
+    """Сохраняет обновленный список URL в storage.json."""
+    with open(STORAGE_FILE, 'w') as f:
+        json.dump(posted_urls, f, indent=2)
 
+async def main():
+    """Главная функция, выполняющая всю работу."""
+    if not BOT_TOKEN or not CHANNEL_ID:
+        print("Ошибка: BOT_TOKEN или CHANNEL_ID не найдены. Проверьте секреты GitHub.")
+        return
 
-def extract_full_text(url):
-    try:
-        response = requests.get(
-            url,
-            timeout=10,
-            headers={"User-Agent": "Mozilla/5.0"}
-        )
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        for tag in soup(["script", "style", "noscript", "header", "footer", "nav", "aside"]):
-            tag.decompose()
-
-        paragraphs = soup.find_all("p")
-        text = "\n".join(
-            p.get_text(strip=True)
-            for p in paragraphs
-            if len(p.get_text(strip=True)) > 40
-        )
-
-        return text[:4000]
-    except Exception:
-        return ""
-
-
-def summarize_text(text):
-    sentences = text.split(".")
-    bullets = []
-
-    for s in sentences:
-        s = s.strip()
-        if 50 < len(s) < 200:
-            bullets.append(f"• {s}")
-        if len(bullets) >= 5:
-            break
-
-    return "\n".join(bullets)
-
-
-# ---------- ПОЛУЧЕНИЕ НОВОСТИ ----------
-
-def get_latest_news(storage):
-    sorted_sources = sorted(
-        RSS_SOURCES,
-        key=lambda s: SOURCE_WEIGHTS.get(s, 1),
-        reverse=True
-    )
-
-    for source in sorted_sources:
-        feed = feedparser.parse(source)
-
-        for entry in feed.entries:
-            link = entry.get("link")
-            if not link or link in storage["published_links"]:
-                continue
-
-            update_source_stats(storage, source, published=False)
-
-            image = extract_image(entry)
-            if not image:
-                continue
-
-            title = clean_html(entry.get("title", ""))
-
-            full_text = extract_full_text(link)
-            summary = summarize_text(full_text)
-            if not summary:
-                continue
-
-            series = detect_series(title, summary)
-
-            update_source_stats(storage, source, published=True)
-
-            return {
-                "title": title,
-                "description": summary,
-                "link": link,
-                "image": image,
-                "series": series
-            }
-
-    return None
-
-
-# ---------- ПУБЛИКАЦИЯ ----------
-
-def generate_short_post():
-    tips = [
-        "Лучше недолить растение, чем перелить.",
-        "Не поливайте растения холодной водой — это стресс для корней.",
-        "Рыхление почвы после полива улучшает доступ кислорода.",
-        "Пожелтение листьев часто говорит о переувлажнении.",
-        "Не сажайте рассаду в холодную почву — рост замедляется."
-    ]
-    return "🌱 *Совет дня*\n\n" + tips[hash(os.urandom(4)) % len(tips)]
-
-
-async def post_short(text):
-    bot = Bot(token=TOKEN)
-    await bot.send_message(chat_id=CHAT_ID, text=text, parse_mode="Markdown")
-
-
-async def post_full(news):
-    bot = Bot(token=TOKEN)
-    emoji = EMOJIS[hash(news["title"]) % len(EMOJIS)]
-    series_block = f"{news['series']}\n\n" if news.get("series") else ""
-    tags = detect_tags(news["title"], news["description"])
-    tags_text = " ".join(tags)
+    print("=== ЗАПУСК ДИНАМИЧЕСКОГО ПАРСЕРА ===")
     
-    caption = (
-        f"{series_block}"
-        f"{emoji} *{news['title']}*\n\n"
-        f"{news['description']}\n\n"
-        f"✍️ Подготовлено на основе материалов: {news['link']}\n\n"
-        f"{tags_text}\n"
-        f"#сад #огород #дача"
-    )
+    posted_urls = load_posted_articles()
+    print(f"Загружено {len(posted_urls)} уже опубликованных статей.")
 
-
-    await bot.send_photo(
-        chat_id=CHAT_ID,
-        photo=news["image"],
-        caption=caption,
-        parse_mode="Markdown"
-    )
-
-
-# ---------- MAIN ----------
-
-def main():
-    print("🚀 Бот запущен")
-
-    if not TOKEN:
-        print("❌ BOT_TOKEN не найден")
+    # --- Шаг 1: ОБНАРУЖЕНИЕ ---
+    print("Начинаю сканирование целевых страниц для обнаружения новых статей...")
+    all_discovered_links = set()
+    for page in TARGET_PAGES:
+        try:
+            new_links = discover_new_articles(page)
+            all_discovered_links.update(new_links)
+            print(f"  Найдено {len(new_links)} ссылок на {page}")
+        except Exception as e:
+            print(f"  Не удалось просканировать {page}. Ошибка: {e}")
+            
+    # --- Шаг 2: ФИЛЬТРАЦИЯ ---
+    unposted_articles = [url for url in all_discovered_links if url not in posted_urls]
+    
+    if not unposted_articles:
+        print("Новых, еще не опубликованных статей не найдено. Завершаю работу.")
         return
 
-    storage = load_storage()
-    print(f"📦 Постов опубликовано: {storage['posts_count']}")
+    print(f"Найдено {len(unposted_articles)} новых статей для публикации.")
+    
+    # --- Шаг 3: ПУБЛИКАЦИЯ ---
+    url_to_post = random.choice(unposted_articles)
+    print(f"Выбрана случайная статья для парсинга: {url_to_post}")
+    
+    formatted_article, error = parse_article(url_to_post)
+    
+    if error:
+         print(f"Не удалось спарсить статью. Пропускаем. Сообщение: {error}")
+         return
+         
+    # Отправляем в Telegram
+    try:
+        bot = telegram.Bot(token=BOT_TOKEN)
+        
+        # Обрезаем, если сообщение слишком длинное
+        if len(formatted_article) > 4096:
+            text_to_send = formatted_article[:4000] + "\n\n...(статья слишком длинная, полная версия по ссылке)"
+        else:
+            text_to_send = formatted_article
 
-    if should_make_short_post(storage["posts_count"]):
-        print("📝 Короткий пост")
-        asyncio.run(post_short(generate_short_post()))
-        increment_posts_count(storage)
-        save_storage(storage)
-        return
+        await bot.send_message(
+            chat_id=CHANNEL_ID,
+            text=text_to_send,
+            parse_mode='Markdown'
+        )
+        
+        print(f"Статья успешно опубликована в канале {CHANNEL_ID}.")
+        
+        # Если все успешно, добавляем URL в "память"
+        posted_urls.append(url_to_post)
+        save_posted_articles(posted_urls)
+        print("Файл 'storage.json' обновлен.")
 
-    news = get_latest_news(storage)
-    if not news:
-        print("⚠️ Нет подходящих новостей")
-        save_storage(storage)
-        return
+    except Exception as e:
+        print(f"!!! Произошла ошибка при отправке в Telegram: {e}")
 
-    asyncio.run(post_full(news))
-    storage["published_links"][news["link"]] = True
-    increment_posts_count(storage)
-    save_storage(storage)
+    print("=== РАБОТА БОТА ЗАВЕРШЕНА ===")
 
-    print("✅ Пост опубликован")
-
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    asyncio.run(main())
