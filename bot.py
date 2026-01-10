@@ -14,7 +14,8 @@ from target_pages import TARGET_PAGES
 # --- Конфигурация ---
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHANNEL_ID = os.getenv("CHANNEL_ID") # <-- Не забудьте проверить имя секрета
+# ВАЖНО: Замените 'ИМЯ_ВАШЕГО_СЕКРЕТА' на реальное имя секрета в GitHub
+CHANNEL_ID = os.getenv("ИМЯ_ВАШЕГО_СЕКРЕТА") 
 STORAGE_FILE = "storage.json"
 DAYS_LIMIT = 90
 
@@ -27,7 +28,6 @@ def load_posted_articles():
     try:
         with open(STORAGE_FILE, 'r') as f:
             data = json.load(f)
-            # Убедимся, что это список (на случай пустого файла)
             return data if isinstance(data, list) else []
     except json.JSONDecodeError:
         return []
@@ -40,7 +40,7 @@ def save_posted_articles(posted_urls):
 async def main():
     """Главная функция, выполняющая всю работу."""
     if not BOT_TOKEN or not CHANNEL_ID:
-        print("Ошибка: BOT_TOKEN или CHANNEL_ID не найдены.")
+        print("Ошибка: BOT_TOKEN или CHANNEL_ID не найдены. Проверьте секреты GitHub.")
         return
 
     print("=== ЗАПУСК ДИНАМИЧЕСКОГО ПАРСЕРА ===")
@@ -57,7 +57,7 @@ async def main():
             all_discovered_articles.extend(new_articles)
             print(f"  Найдено {len(new_articles)} статей на {page}")
         except Exception as e:
-            print(f"  Не удалось просканировать {page}. Ошибка: {repr(e)}") # Используем repr для безопасности
+            print(f"  Не удалось просканировать {page}. Ошибка: {repr(e)}")
             
     # --- Шаг 2: ФИЛЬТРАЦИЯ ПО ДАТЕ ---
     print(f"\nНачинаю фильтрацию. Всего найдено {len(all_discovered_articles)} статей.")
@@ -82,7 +82,7 @@ async def main():
     print(f"Найдено {len(unposted_articles)} новых статей для публикации.")
     
     # --- Шаг 4: ПУБЛИКАЦИЯ ---
-    url_to_post = random.choice(unposted_articles)
+    url_to_post = random.choice(list(unposted_articles))
     print(f"Выбрана случайная статья для парсинга: {url_to_post}")
     
     formatted_article, error = parse_article(url_to_post)
@@ -96,14 +96,18 @@ async def main():
         bot = telegram.Bot(token=BOT_TOKEN)
         
         if len(formatted_article) > 4096:
-            text_to_send = formatted_article[:4000] + "\n\n...(статья слишком длинная, полная версия по ссылке)"
+            # Ищем последнее безопасное место для обрезки
+            safe_cutoff = formatted_article.rfind('\n\n', 0, 4000)
+            if safe_cutoff == -1: safe_cutoff = 4000
+            
+            text_to_send = formatted_article[:safe_cutoff] + "\n\n…(статья слишком длинная, полная версия по ссылке)"
         else:
             text_to_send = formatted_article
 
         await bot.send_message(
             chat_id=CHANNEL_ID,
             text=text_to_send,
-            parse_mode='Markdown'
+            parse_mode='MarkdownV2'
         )
         
         print(f"Статья успешно опубликована в канале {CHANNEL_ID}.")
@@ -113,11 +117,10 @@ async def main():
         print("Файл 'storage.json' обновлен.")
 
     except Exception as e:
-        # === ИСПРАВЛЕНИЕ ЗДЕСЬ ===
-        # Используем repr(e), чтобы безопасно напечатать любой объект ошибки
         print(f"!!! Произошла ошибка при отправке в Telegram: {repr(e)}")
 
     print("=== РАБОТА БОТА ЗАВЕРШЕНА ===")
 
 if __name__ == '__main__':
     asyncio.run(main())
+
