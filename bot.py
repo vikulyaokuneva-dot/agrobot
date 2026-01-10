@@ -14,7 +14,7 @@ from target_pages import TARGET_PAGES
 # --- Конфигурация ---
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHANNEL_ID = os.getenv("ИМЯ_ВАШЕГО_СЕКРЕТА") # <-- Не забудьте проверить имя секрета
+CHANNEL_ID = os.getenv("CHANNEL_ID") # <-- Не забудьте проверить имя секрета
 STORAGE_FILE = "storage.json"
 DAYS_LIMIT = 90
 
