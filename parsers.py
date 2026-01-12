@@ -43,9 +43,17 @@ def discover_supersadovnik_links(soup, base_url):
         if link_tag and date_tag and link_tag.has_attr('href'):
             url = urljoin(base_url, link_tag['href'])
             date = parse_date_string(date_tag.get_text())
-            if date:
-                articles.append((url, date))
-    return articles
+            if not date:
+                continue
+            if date < datetime.now() - timedelta(days=90):
+                continue
+            if not links:
+                print("  ⚠ HTML пустой, использую fallback по <a>")
+                for a in soup.select("a[href]"):
+                    href = a["href"]
+                    if "/ru/" in href and "article" in href:
+                        links.add(urljoin(target_url, href))
+    return list(set(links))
 
 def discover_botanichka_links(soup, base_url):
     articles = []
@@ -55,8 +63,17 @@ def discover_botanichka_links(soup, base_url):
         if link_tag and date_tag and link_tag.has_attr('href'):
             url = urljoin(base_url, link_tag['href'])
             date = parse_date_string(date_tag.get_text())
-            if date: articles.append((url, date))
-    return articles
+             if not date:
+                continue
+            if date < datetime.now() - timedelta(days=90):
+                continue
+            if not links:
+                print("  ⚠ HTML пустой, использую fallback по <a>")
+                for a in soup.select("a[href]"):
+                    href = a["href"]
+                    if "/ru/" in href and "article" in href:
+                        links.add(urljoin(target_url, href))            
+    return list(set(links))
     
 def discover_ogorod_ru_links(soup, base_url):
     articles = []
@@ -66,8 +83,11 @@ def discover_ogorod_ru_links(soup, base_url):
         if link_tag and date_tag and link_tag.has_attr('href'):
             url = urljoin(base_url, link_tag['href'])
             date = parse_date_string(date_tag.get_text())
-            if date: articles.append((url, date))
-    return articles
+            if not date:
+                continue
+            if date < datetime.now() - timedelta(days=90):
+                continue
+    return list(set(links))
     
 def discover_dolinadad_links(soup, base_url):
     articles = []
@@ -77,8 +97,11 @@ def discover_dolinadad_links(soup, base_url):
         if link_tag and date_tag and link_tag.has_attr('href'):
             url = urljoin(base_url, link_tag['href'])
             date = parse_date_string(date_tag.get_text())
-            if date: articles.append((url, date))
-    return articles
+            if not date:
+                continue
+            if date < datetime.now() - timedelta(days=90):
+                continue
+    return list(set(links))
     
 def discover_tk_konstruktor_links(soup, base_url):
     articles = []
@@ -88,8 +111,11 @@ def discover_tk_konstruktor_links(soup, base_url):
         if link_tag and date_tag and link_tag.has_attr('href'):
             url = urljoin(base_url, link_tag['href'])
             date = parse_date_string(date_tag.get_text())
-            if date: articles.append((url, date))
-    return articles
+            if not date:
+                continue
+            if date < datetime.now() - timedelta(days=90):
+                continue
+    return list(set(links))
 
 # --- Функции ПАРСИНГА отдельных статей ---
 def parse_supersadovnik(soup):
