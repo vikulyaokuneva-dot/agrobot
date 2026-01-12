@@ -65,8 +65,7 @@ async def main():
     unique_recent_urls = set(recent_articles)
     unposted_articles = [url for url in unique_recent_urls if url not in posted_urls]
     
-    # === ИЗМЕНЕНИЕ ЗДЕСЬ ===
-    # Переписана логика проверки, чтобы избежать противоречий
+    # --- Переписанная логика проверки ---
     if unposted_articles:
         print(f"Найдено {len(unposted_articles)} новых статей для публикации.")
         
@@ -107,3 +106,4 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
+
